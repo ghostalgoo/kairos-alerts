@@ -67,11 +67,11 @@ def receive_alert():
         return jsonify({'error': str(e), 'ok': False}), 500
 
 
-@app.route('/api/mt5/next', methods=['GET'])
+@app.route('/api/mt5/next', methods=['GET', 'POST'])
 def get_next_alert():
     """Sert l'alerte suivante à MT5"""
-    token = request.args.get('token')
-    symbol = request.args.get('symbol')
+    token = request.args.get('token') or (request.get_json() or {}).get('token')
+    symbol = request.args.get('symbol') or (request.get_json() or {}).get('symbol')
 
     if not validate_token(token):
         return jsonify({'error': 'Invalid token', 'ok': False}), 401
