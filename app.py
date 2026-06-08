@@ -29,8 +29,8 @@ def receive_alert():
         data = request.get_json()
         
         # Mapper les champs de l'indicateur Pine Script
-        symbol = data.get('broker_symbol')  # ← "broker_symbol" au lieu de "symbol"
-        direction = data.get('side')        # ← "side" au lieu de "direction"
+        symbol = data.get('broker_symbol')
+        direction = data.get('side')
         price = data.get('price')
         time_val = data.get('bar_time', get_time())
 
@@ -46,7 +46,7 @@ def receive_alert():
             'price': price,
             'time': time_val,
             'receivedAt': get_time(),
-            'full_data': data  # Garder toutes les données
+            'full_data': data
         }
 
         alerts_queue[symbol].append(alert)
@@ -81,18 +81,20 @@ def get_next_alert():
         alert = alerts_queue[symbol].pop(0)
         stats[symbol]['sent'] += 1
         print(f"[{get_time()}] Alert sent to MT5: {symbol}")
-        return jsonify({
-            'ok': True,
-            'alert': alert,
-            'symbol': symbol,
-            'queued': len(alerts_queue[symbol])
-        }), 200
+        return jsonify(alert['full_data']), 200
     else:
         return jsonify({
             'ok': True,
             'alert': None,
             'symbol': symbol,
-            return jsonify(alert), 200
+            'queued': 0
+        }), 200
+
+
+@app.route('/api/status', methods=['GET'])
+def status():
+    return jsonify({
+        'ok': True,
         'server': 'running',
         'symbols': SYMBOLS,
         'stats': stats,
