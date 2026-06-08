@@ -19,7 +19,6 @@ def get_time():
 
 @app.route('/api/tv', methods=['POST'])
 def receive_alert():
-    """Reçoit les alertes de TradingView"""
     token = request.args.get('token')
 
     if not validate_token(token):
@@ -27,39 +26,22 @@ def receive_alert():
 
     try:
         data = request.get_json()
-        
-        # Mapper les champs de l'indicateur Pine Script
         symbol = data.get('broker_symbol')
-        direction = data.get('side')
+        side = data.get('side')
         price = data.get('price')
-        time_val = data.get('bar_time', get_time())
 
-        if not all([symbol, direction, price]):
-            return jsonify({'error': 'Missing: broker_symbol, side, price', 'ok': False}), 400
+        if not all([symbol, side, price]):
+            return jsonify({'error': 'Missing fields', 'ok': False}), 400
 
         if symbol not in SYMBOLS:
-            return jsonify({'error': f'Unknown symbol. Use: {", ".join(SYMBOLS)}', 'ok': False}), 400
+            return jsonify({'error': f'Unknown symbol', 'ok': False}), 400
 
-        alert = {
-            'symbol': symbol,
-            'direction': direction,
-            'price': price,
-            'time': time_val,
-            'receivedAt': get_time(),
-            'full_data': data
-        }
-
-        alerts_queue[symbol].append(alert)
+        alerts_queue[symbol].append(data)
         stats[symbol]['received'] += 1
 
-        print(f"[{get_time()}] Alert received: {symbol} {direction} @ {price}")
+        print(f"[{get_time()}] Alert received: {symbol} {side} @ {price}")
 
-        return jsonify({
-            'ok': True,
-            'message': f'Alert received for {symbol}',
-            'symbol': symbol,
-            'queued': len(alerts_queue[symbol])
-        }), 200
+        return jsonify({'ok': True, 'queued': len(alerts_queue[symbol])}), 200
 
     except Exception as e:
         return jsonify({'error': str(e), 'ok': False}), 500
@@ -67,7 +49,6 @@ def receive_alert():
 
 @app.route('/api/mt5/next', methods=['GET', 'POST'])
 def get_next_alert():
-    """Sert l'alerte suivante à MT5"""
     token = request.args.get('token') or (request.get_json() or {}).get('token')
     symbol = request.args.get('symbol') or (request.get_json() or {}).get('symbol')
 
@@ -75,20 +56,15 @@ def get_next_alert():
         return jsonify({'error': 'Invalid token', 'ok': False}), 401
 
     if not symbol or symbol not in SYMBOLS:
-        return jsonify({'error': f'Invalid symbol. Use: {", ".join(SYMBOLS)}', 'ok': False}), 400
+        return jsonify({'error': 'Invalid symbol', 'ok': False}), 400
 
     if alerts_queue[symbol]:
         alert = alerts_queue[symbol].pop(0)
         stats[symbol]['sent'] += 1
         print(f"[{get_time()}] Alert sent to MT5: {symbol}")
-        return jsonify(alert['full_data']), 200
+        return alert, 200
     else:
-        return jsonify({
-            'ok': True,
-            'alert': None,
-            'symbol': symbol,
-            'queued': 0
-        }), 200
+        return {}, 200
 
 
 @app.route('/api/status', methods=['GET'])
@@ -109,11 +85,7 @@ def health():
 
 @app.route('/', methods=['GET'])
 def root():
-    return jsonify({
-        'ok': True,
-        'server': 'Kairos TV Alerts Server',
-        'version': '1.0.0'
-    }), 200
+    return jsonify({'ok': True, 'server': 'Kairos TV Alerts Server', 'version': '1.0.0'}), 200
 
 
 if __name__ == '__main__':
