@@ -92,14 +92,7 @@ def get_next_alert():
             'ok': True,
             'alert': None,
             'symbol': symbol,
-            'queued': 0
-        }), 200
-
-
-@app.route('/api/status', methods=['GET'])
-def status():
-    return jsonify({
-        'ok': True,
+            return jsonify(alert), 200
         'server': 'running',
         'symbols': SYMBOLS,
         'stats': stats,
